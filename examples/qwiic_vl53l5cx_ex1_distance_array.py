@@ -1,10 +1,10 @@
 #!/usr/bin/env python
 #-------------------------------------------------------------------------------
-# qwiic_template_ex1_title.py TODO: replace template and title
+# qwiic_vl53l5cx.py
 #
-# TODO: Add description for this example
+# This example shows how to read all 64 distance readings at once.
 #-------------------------------------------------------------------------------
-# Written by SparkFun Electronics, TODO: month and year
+# Written by SparkFun Electronics, November 2024
 #
 # This python library supports the SparkFun Electroncis Qwiic ecosystem
 #
@@ -33,30 +33,53 @@
 # SOFTWARE.
 #===============================================================================
 
-import qwiic_template # TODO Import correct package
+import qwiic_vl53l5cx 
 import sys
-
+from math import sqrt
+import time
 def runExample():
-	# TODO Replace template and title
-	print("\nQwiic Template Example 1 - Title\n")
+	print("\nQwiic VL53LCX Example 1 - DistanceArray\n")
 
 	# Create instance of device
-	myDevice = qwiic_template.QwiicTemplate() # TODO update as needed
+	myVL53L5CX = qwiic_vl53l5cx.QwiicVL53L5CX() 
 
 	# Check if it's connected
-	if myDevice.is_connected() == False:
-		print("The device isn't connected to the system. Please check your connection", \
-			file=sys.stderr)
+	if myVL53L5CX.is_connected() == False:
+		print("The device isn't connected to the system. Please check your connection", file=sys.stderr)
 		return
 
 	# Initialize the device
-	myDevice.begin()
+	print ("Initializing sensor board. This can take up to 10s. Please wait.")
+	if myVL53L5CX.begin() == False:
+		print("Sensor initialization unsuccessful. Exiting...", file=sys.stderr)
+		sys.exit(1)
 
-	# TODO Add basic example code
+	myVL53L5CX.set_resolution(8*8) # enable all 64 pads
+	image_resolution = myVL53L5CX.get_resolution()  # Query sensor for current resolution - either 4x4 or 8x8
 
+	image_width = sqrt(image_resolution) # Calculate printing width
+	myVL53L5CX.start_ranging()
+
+	while True:
+		if myVL53L5CX.data_ready():
+			measurement_data = myVL53L5CX.get_ranging_data()
+			for y in range (0, (image_width * (image_width - 1) )+ 1, image_width):
+				for x in range (image_width - 1, -1, -1):
+					print("\t", end="")
+					print(measurement_data.distance_mm[x + y], end = "")
+				print("\n")
+			print("\n")
+		
+		time.sleep(0.005)
+	
+
+
+	
+
+	
 if __name__ == '__main__':
 	try:
 		runExample()
 	except (KeyboardInterrupt, SystemExit) as exErr:
-		print("\nEnding Example")
+		print("\nEnding Example 1")
 		sys.exit(0)
