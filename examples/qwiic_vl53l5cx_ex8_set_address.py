@@ -1,8 +1,8 @@
 #!/usr/bin/env python
 #-------------------------------------------------------------------------------
-# qwiic_vl53l5cx_ex1_distance_array.py
+# qwiic_vl53l5cx_ex8_set_address.py
 #
-# This example shows how to read all 64 distance readings at once.
+# This example shows how to set a custom address for the VL53L5CX.
 #-------------------------------------------------------------------------------
 # Written by SparkFun Electronics, November 2024
 #
@@ -39,7 +39,7 @@ from math import sqrt
 import time
 
 def runExample():
-	print("\nQwiic VL53LCX Example 1 - DistanceArray\n")
+	print("\nQwiic VL53LCX Example 8 - Set Address\n")
 
 	# Create instance of device
 	myVL53L5CX = qwiic_vl53l5cx.QwiicVL53L5CX() 
@@ -55,6 +55,16 @@ def runExample():
 		print("Sensor initialization unsuccessful. Exiting...", file=sys.stderr)
 		sys.exit(1)
 
+	# Set the address of the sensor
+	newAddress = 0x44 # You can change this to any value in the range 0x08 <= newAddress <= 0x77
+	print("Press any key, followed by enter to set the address of the sensor to:", hex(newAddress))
+	input()
+	if myVL53L5CX.set_address(newAddress) == False:
+		print("Failed to set address. Exiting...", file=sys.stderr)
+		sys.exit(1)
+	
+	print("Sensor address is now:", myVL53L5CX.get_i2c_address())
+	
 	myVL53L5CX.set_resolution(8*8) # enable all 64 pads
 	image_resolution = myVL53L5CX.get_resolution()  # Query sensor for current resolution - either 4x4 or 8x8
 

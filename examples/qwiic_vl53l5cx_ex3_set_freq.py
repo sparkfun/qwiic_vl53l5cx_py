@@ -1,8 +1,12 @@
 #!/usr/bin/env python
 #-------------------------------------------------------------------------------
-# qwiic_vl53l5cx_ex1_distance_array.py
+# qwiic_vl53l5cx_ex3_set_freq.py
 #
-# This example shows how to read all 64 distance readings at once.
+# This example shows how to increase output frequency.
+
+# Default is 1Hz.
+# Using 4x4, min frequency is 1Hz and max is 60Hz
+# Using 8x8, min frequency is 1Hz and max is 15Hz
 #-------------------------------------------------------------------------------
 # Written by SparkFun Electronics, November 2024
 #
@@ -39,7 +43,7 @@ from math import sqrt
 import time
 
 def runExample():
-	print("\nQwiic VL53LCX Example 1 - DistanceArray\n")
+	print("\nQwiic VL53LCX Example 3 - Set Frequency\n")
 
 	# Create instance of device
 	myVL53L5CX = qwiic_vl53l5cx.QwiicVL53L5CX() 
@@ -57,8 +61,18 @@ def runExample():
 
 	myVL53L5CX.set_resolution(8*8) # enable all 64 pads
 	image_resolution = myVL53L5CX.get_resolution()  # Query sensor for current resolution - either 4x4 or 8x8
-
 	image_width = sqrt(image_resolution) # Calculate printing width
+	
+	
+	# Using 4x4, min frequency is 1Hz and max is 60Hz
+  	# Using 8x8, min frequency is 1Hz and max is 15Hz
+	if myVL53L5CX.set_ranging_frequency_hz(15) == False:
+		print("Failed to set ranging frequency", file=sys.stderr)
+		sys.exit(1)
+	else:
+		frequency = myVL53L5CX.get_ranging_frequency_hz()
+		print("Current ranging frequency is: ", frequency, "Hz")
+	
 	myVL53L5CX.start_ranging()
 
 	while True:

@@ -1,6 +1,10 @@
 {
     "urls": [
-      ["qwiic_template.py", "github:sparkfun/Qwiic_Template_Py/qwiic_template.py"]
+      ["qwiic_vl53l5cx.py", "github:sparkfun/Qwiic_VL53L5CX_Py/qwiic_vl53l5cx.py"],
+      ["vl53l5cx_bin/firmware.bin", "github:sparkfun/Qwiic_VL53L5CX_Py/vl53l5cx_bin/firmware.bin"],
+      ["vl53l5cx_bin/default_configuration.bin", "github:sparkfun/Qwiic_VL53L5CX_Py/vl53l5cx_bin/default_configuration.bin"],
+      ["vl53l5cx_bin/default_xtalk.bin", "github:sparkfun/Qwiic_VL53L5CX_Py/vl53l5cx_bin/default_xtalk.bin"],
+      ["vl53l5cx_bin/get_nvm_cmd.bin", "github:sparkfun/Qwiic_VL53L5CX_Py/vl53l5cx_bin/get_nvm_cmd.bin"]
     ],
     "deps": [
       ["github:sparkfun/Qwiic_I2C_Py", "master"]

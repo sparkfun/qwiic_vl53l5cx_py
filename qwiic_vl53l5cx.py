@@ -49,7 +49,7 @@ New to Qwiic? Take a look at the entire [SparkFun Qwiic ecosystem](https://www.s
 # platform, check it out here: https://github.com/sparkfun/Qwiic_I2C_Py
 import qwiic_i2c
 import time
-import buffers
+import os
 
 # Define the device name and I2C addresses. These are set in the class defintion
 # as class variables, making them avilable without having to create a class
@@ -192,7 +192,7 @@ class QwiicVL53L5CX(object):
     kOffsetBufferSize = 488
     kXTalkBufferSize = 776
 
-    def __init__(self, address=None, i2c_driver=None):
+    def __init__(self, address=None, i2c_driver=None, dataPath = "vl53l5cx_bin"):
         """
         Constructor
 
@@ -202,6 +202,8 @@ class QwiicVL53L5CX(object):
         :param i2c_driver: An existing i2c driver object
             If not provided, a driver object is created
         :type i2c_driver: I2CDriver, optional
+        :param dataPath: The path to the data directory. Can be relative to this module script or absolute.
+        :type dataPath: str
         """
 
         # Use address if provided, otherwise pick the default
@@ -218,7 +220,13 @@ class QwiicVL53L5CX(object):
                 return
         else:
             self._i2c = i2c_driver
-        
+
+        if os.path.isdir(dataPath):
+            self._dataPath = dataPath # User already supplied absolute path
+        else:
+            scriptDir = os.path.dirname(os.path.abspath(__file__))
+            self._dataPath = os.path.join(scriptDir, dataPath) # User supplied relative path
+
         # Lists from the cpp lib
         self.offset_data = [0] * self.kOffsetDataSize
         self.xtalk_data = [0] * self.kXTalkDataSize
@@ -226,6 +234,7 @@ class QwiicVL53L5CX(object):
 
         self.data_read_size = 0
         self.stream_count = 0
+
 
     def is_connected(self):
         """
@@ -241,6 +250,23 @@ class QwiicVL53L5CX(object):
 
     connected = property(is_connected)
 
+    def check_data_directory(self):
+        """
+        Checks if the data directory exists and contains the necessary files
+
+        :return: `True` if the data directory exists and contains the necessary files, otherwise `False`
+        :rtype: bool
+        """
+        if not os.path.isdir(self._dataPath):
+            return False
+
+        for file in ['firmware.bin', 
+                     'default_configuration.bin', 
+                     'default_xtalk.bin', 
+                     'get_nvm_cmd.bin']:
+            if not os.path.isfile(os.path.join(self._dataPath, file)):
+                return False
+
     def begin(self):
         """
         Initializes this device with default parameters
@@ -255,118 +281,124 @@ class QwiicVL53L5CX(object):
         if not self.is_alive():
             return False
         
+        # Verify that the data folder exists and contains necessary binaries
+        if not self.check_data_directory():
+            return False
+        
         # Contents of the "vl53l5cx_init" function in the cpp lib
         pipe_ctrl = [self.kNbTargetPerZone, 0x00, 0x01, 0x00]
         single_range = 0x01
 
         # Sw reboot sequence
-        self._i2c.write_byte(self.address, 0x7fff, 0x00)
-        self._i2c.write_byte(self.address, 0x0009, 0x04)
-        self._i2c.write_byte(self.address, 0x000F, 0x40)
-        self._i2c.write_byte(self.address, 0x000A, 0x03)
-        tmp = self._i2c.read_byte(self.address, 0x7FFF)
-        self._i2c.write_byte(self.address, 0x000C, 0x01)
-        self._i2c.write_byte(self.address, 0x0101, 0x00)
-        self._i2c.write_byte(self.address, 0x0102, 0x00)
-        self._i2c.write_byte(self.address, 0x010A, 0x01)
-        self._i2c.write_byte(self.address, 0x4002, 0x01)
-        self._i2c.write_byte(self.address, 0x4002, 0x00)
-        self._i2c.write_byte(self.address, 0x010A, 0x03)
-        self._i2c.write_byte(self.address, 0x0103, 0x01)
-        self._i2c.write_byte(self.address, 0x000C, 0x00)
-        self._i2c.write_byte(self.address, 0x000F, 0x43)
+        self._i2c.wr_byte(self.address, 0x7fff, 0x00)
+        self._i2c.wr_byte(self.address, 0x0009, 0x04)
+        self._i2c.wr_byte(self.address, 0x000F, 0x40)
+        self._i2c.wr_byte(self.address, 0x000A, 0x03)
+        tmp = self._i2c.rd_byte(self.address, 0x7FFF)
+        self._i2c.wr_byte(self.address, 0x000C, 0x01)
+        self._i2c.wr_byte(self.address, 0x0101, 0x00)
+        self._i2c.wr_byte(self.address, 0x0102, 0x00)
+        self._i2c.wr_byte(self.address, 0x010A, 0x01)
+        self._i2c.wr_byte(self.address, 0x4002, 0x01)
+        self._i2c.wr_byte(self.address, 0x4002, 0x00)
+        self._i2c.wr_byte(self.address, 0x010A, 0x03)
+        self._i2c.wr_byte(self.address, 0x0103, 0x01)
+        self._i2c.wr_byte(self.address, 0x000C, 0x00)
+        self._i2c.wr_byte(self.address, 0x000F, 0x43)
         time.sleep(0.001)
 
-        self._i2c.write_byte(self.address, 0x000F, 0x40)
-        self._i2c.write_byte(self.address, 0x000A, 0x01)
+        self._i2c.wr_byte(self.address, 0x000F, 0x40)
+        self._i2c.wr_byte(self.address, 0x000A, 0x01)
         time.sleep(0.100)
+        
+        status = self.kStatusOK
 
         # Wait for sensor booted (several ms required to get sensor ready)
-        self._i2c.write_byte(self.address, 0x7FFF, 0x00)
+        self._i2c.wr_byte(self.address, 0x7FFF, 0x00)
         status |= self.poll_for_answer(1, 0, 0x06, 0xff, 1)
 
-        self._i2c.write_byte(self.address, 0x000E, 0x01)
-        self._i2c.write_byte(self.address, 0x7fff, 0x02)
+        self._i2c.wr_byte(self.address, 0x000E, 0x01)
+        self._i2c.wr_byte(self.address, 0x7fff, 0x02)
 
         # Enable Fw access
-        self._i2c.write_byte(self.address, 0x03, 0x0D)
-        self._i2c.write_byte(self.address, 0x7fff, 0x01)
-        self.poll_for_answer(1, 0, 0x21, 0x10, 0x10)
-        self._i2c.write_byte(self.address, 0x7fff, 0x00)
+        self._i2c.wr_byte(self.address, 0x03, 0x0D)
+        self._i2c.wr_byte(self.address, 0x7fff, 0x01)
+        status |= self.poll_for_answer(1, 0, 0x21, 0x10, 0x10)
+        self._i2c.wr_byte(self.address, 0x7fff, 0x00)
 
         # Enable host access to GO1
-        self._i2c.write_byte(self.address, 0x0C, 0x01)
+        self._i2c.wr_byte(self.address, 0x0C, 0x01)
 
         # Power ON status
-        self._i2c.write_byte(self.address, 0x7fff, 0x00)
-        self._i2c.write_byte(self.address, 0x101, 0x00)
-        self._i2c.write_byte(self.address, 0x102, 0x00)
-        self._i2c.write_byte(self.address, 0x010A, 0x01)
-        self._i2c.write_byte(self.address, 0x4002, 0x01)
-        self._i2c.write_byte(self.address, 0x4002, 0x00)
-        self._i2c.write_byte(self.address, 0x010A, 0x03)
-        self._i2c.write_byte(self.address, 0x103, 0x01)
-        self._i2c.write_byte(self.address, 0x400F, 0x00)
-        self._i2c.write_byte(self.address, 0x21A, 0x43)
-        self._i2c.write_byte(self.address, 0x21A, 0x03)
-        self._i2c.write_byte(self.address, 0x21A, 0x01)
-        self._i2c.write_byte(self.address, 0x21A, 0x00)
-        self._i2c.write_byte(self.address, 0x219, 0x00)
-        self._i2c.write_byte(self.address, 0x21B, 0x00)
+        self._i2c.wr_byte(self.address, 0x7fff, 0x00)
+        self._i2c.wr_byte(self.address, 0x101, 0x00)
+        self._i2c.wr_byte(self.address, 0x102, 0x00)
+        self._i2c.wr_byte(self.address, 0x010A, 0x01)
+        self._i2c.wr_byte(self.address, 0x4002, 0x01)
+        self._i2c.wr_byte(self.address, 0x4002, 0x00)
+        self._i2c.wr_byte(self.address, 0x010A, 0x03)
+        self._i2c.wr_byte(self.address, 0x103, 0x01)
+        self._i2c.wr_byte(self.address, 0x400F, 0x00)
+        self._i2c.wr_byte(self.address, 0x21A, 0x43)
+        self._i2c.wr_byte(self.address, 0x21A, 0x03)
+        self._i2c.wr_byte(self.address, 0x21A, 0x01)
+        self._i2c.wr_byte(self.address, 0x21A, 0x00)
+        self._i2c.wr_byte(self.address, 0x219, 0x00)
+        self._i2c.wr_byte(self.address, 0x21B, 0x00)
 
         # Wake up MCU
-        self._i2c.write_byte(self.address, 0x7fff, 0x00)
-        self._i2c.write_byte(self.address, 0x000C, 0x00)
-        self._i2c.write_byte(self.address, 0x7fff, 0x01)
-        self._i2c.write_byte(self.address, 0x0020, 0x07)
-        self._i2c.write_byte(self.address, 0x0020, 0x06)
+        self._i2c.wr_byte(self.address, 0x7fff, 0x00)
+        self._i2c.wr_byte(self.address, 0x000C, 0x00)
+        self._i2c.wr_byte(self.address, 0x7fff, 0x01)
+        self._i2c.wr_byte(self.address, 0x0020, 0x07)
+        self._i2c.wr_byte(self.address, 0x0020, 0x06)
 
         # Download FW into VL53L5
-        self._i2c.write_byte(self.address, 0x7fff, 0x09)
-        self._i2c.write_block(self.address, 0, buffers.FIRMWARE[0:0x8000])
-        self._i2c.write_byte(self.address, 0x7fff, 0x0a)
-        self._i2c.write_block(self.address, 0, buffers.FIRMWARE[0x8000:0x10000])
-        self._i2c.write_byte(self.address, 0x7fff, 0x0b)
-        self._i2c.write_block(self.address, 0, buffers.FIRMWARE[0x10000:0x15000])
-        self._i2c.write_byte(self.address, 0x7fff, 0x01)
+        self._i2c.wr_byte(self.address, 0x7fff, 0x09)
+        self._i2c.wr_multi(self.address, 0, self.get_buffer_from_file('firmware.bin', 0, 0x8000))
+        self._i2c.wr_byte(self.address, 0x7fff, 0x0a)
+        self._i2c.wr_multi(self.address, 0, self.get_buffer_from_file('firmware.bin', 0x8000, 0x10000))
+        self._i2c.wr_byte(self.address, 0x7fff, 0x0b)
+        self._i2c.wr_multi(self.address, 0, self.get_buffer_from_file('firmware.bin', 0x10000, 0x15000))
+        self._i2c.wr_byte(self.address, 0x7fff, 0x01)
 
         # Check if FW correctly downloaded
-        self._i2c.write_byte(self.address, 0x7fff, 0x02)
-        self._i2c.write_byte(self.address, 0x03, 0x0D)
-        self._i2c.write_byte(self.address, 0x7fff, 0x01)
-        self.poll_for_answer(1, 0, 0x21, 0x10, 0x10)
-        self._i2c.write_byte(self.address, 0x7fff, 0x00)
-        self._i2c.write_byte(self.address, 0x0C, 0x01)
+        self._i2c.wr_byte(self.address, 0x7fff, 0x02)
+        self._i2c.wr_byte(self.address, 0x03, 0x0D)
+        self._i2c.wr_byte(self.address, 0x7fff, 0x01)
+        status |= self.poll_for_answer(1, 0, 0x21, 0x10, 0x10)
+        self._i2c.wr_byte(self.address, 0x7fff, 0x00)
+        self._i2c.wr_byte(self.address, 0x0C, 0x01)
 
         # Reset MCU and wait boot
-        self._i2c.write_byte(self.address, 0x7FFF, 0x00)
-        self._i2c.write_byte(self.address, 0x114, 0x00)
-        self._i2c.write_byte(self.address, 0x115, 0x00)
-        self._i2c.write_byte(self.address, 0x116, 0x42)
-        self._i2c.write_byte(self.address, 0x117, 0x00)
-        self._i2c.write_byte(self.address, 0x0B, 0x00)
-        self._i2c.write_byte(self.address, 0x0C, 0x00)
-        self._i2c.write_byte(self.address, 0x0B, 0x01)
+        self._i2c.wr_byte(self.address, 0x7FFF, 0x00)
+        self._i2c.wr_byte(self.address, 0x114, 0x00)
+        self._i2c.wr_byte(self.address, 0x115, 0x00)
+        self._i2c.wr_byte(self.address, 0x116, 0x42)
+        self._i2c.wr_byte(self.address, 0x117, 0x00)
+        self._i2c.wr_byte(self.address, 0x0B, 0x00)
+        self._i2c.wr_byte(self.address, 0x0C, 0x00)
+        self._i2c.wr_byte(self.address, 0x0B, 0x01)
         # TODO: might have to put a sleep here, previous libs have been upset when polling while coming out of boot
-        self.poll_for_answer(1, 0, 0x06, 0xff, 0x00)
-        self._i2c.write_byte(self.address, 0x7fff, 0x02)
+        status |= self.poll_for_answer(1, 0, 0x06, 0xff, 0x00)
+        self._i2c.wr_byte(self.address, 0x7fff, 0x02)
 
         # Get offset NVM data and store them into the offset buffer
-        self._i2c.write_block(self.address, 0x2fd8, buffers.GET_NVM_CMD)
-        self.poll_for_answer(4, 0, self.kUiCmdStatus, 0xff, 0x02)
+        self._i2c.wr_multi(self.address, 0x2fd8, self.get_buffer_from_file('get_nvm_cmd.bin'))
+        status |= self.poll_for_answer(4, 0, self.kUiCmdStatus, 0xff, 0x02)
 
-        self.temp_buffer[:self.kNvmDataSize] = self._i2c.read_block(self.address, self.kUiCmdStart, self.kNvmDataSize)
+        self.temp_buffer[:self.kNvmDataSize] = self._i2c.rd_multi(self.address, self.kUiCmdStart, self.kNvmDataSize)
         self.offset_data[:self.kOffsetBufferSize] = self.temp_buffer[:self.kOffsetBufferSize]
 
         self.send_offset_data(self.kResolution4x4)
 
         # Set default Xtalk shape. Send Xtalk to sensor
-        self.xtalk_data = buffers.DEFAULT_XTALK[:self.kXTalkBufferSize]
+        self.xtalk_data = self.get_buffer_from_file('default_xtalk.bin')[:self.kXTalkBufferSize]
 
         status |= self.send_xtalk_data(self.kResolution4x4)
 
         # Send default configuration to VL53L5CX firmware
-        self._i2c.write_block(self.address, 0x2c34, buffers.DEFAULT_CONFIGURATION)
+        self._i2c.wr_multi(self.address, 0x2c34, self.get_buffer_from_file('default_configuration.bin'))
 
         status |= self.poll_for_answer(4, 1, self.kUiCmdStatus, 0xff, 0x03)
 
@@ -409,7 +441,7 @@ class QwiicVL53L5CX(object):
         timeout = 0
 
         while True: # Equivalent of the do-while loop in the cpp lib
-            data = self._i2c.read_block(self.address, addr, size)
+            data = self._i2c.rd_multi(self.address, addr, size)
 
             self.temp_buffer[:size] = data
 
@@ -483,7 +515,7 @@ class QwiicVL53L5CX(object):
             self.temp_buffer[i] = self.temp_buffer[i + 8]
 
         self.temp_buffer[0x1E0:0x1E0+8] = footer
-        self._i2c.write_block(self.address, 0x2e18, self.temp_buffer, self.kOffsetDataSize)
+        self._i2c.wr_multi(self.address, 0x2e18, self.temp_buffer, self.kOffsetDataSize)
         status |= self.poll_for_answer(4, 1, self.kUiCmdStatus, 0xff, 0x03)
 
         return status
@@ -531,7 +563,7 @@ class QwiicVL53L5CX(object):
             self.temp_buffer[0x134:0x134+4] = profile_4x4
             self.temp_buffer[0x078:0x078+4] = 0x00
             
-            self._i2c.write_block(self.address, 0x2cf8, self.temp_buffer, self.kXTalkDataSize)
+            self._i2c.wr_multi(self.address, 0x2cf8, self.temp_buffer, self.kXTalkDataSize)
             status |= self.poll_for_answer(4, 1, self.kUiCmdStatus, 0xff, 0x03)
 
             return status
@@ -577,7 +609,7 @@ class QwiicVL53L5CX(object):
             self.temp_buffer[data_size + 4:data_size + 12] = footer
 
             # Send data to FW
-            self._i2c.write_block(self.address, address, self.temp_buffer, data_size + 12)
+            self._i2c.wr_multi(self.address, address, self.temp_buffer, data_size + 12)
             status |= self.poll_for_answer(4, 1, self.kUiCmdStatus, 0xff, 0x03)
 
             self.swap_buffer(data, data_size)
@@ -616,11 +648,11 @@ class QwiicVL53L5CX(object):
             cmd[3] = (data_size & 0xf) << 4
 
             # Request data reading from FW
-            self._i2c.write_block(self.address, self.kUiCmdEnd - 11, cmd, 12)
+            self._i2c.wr_multi(self.address, self.kUiCmdEnd - 11, cmd, 12)
             status |= self.poll_for_answer(4, 1, self.kUiCmdStatus, 0xff, 0x03)
 
             # Read new data sent (4 bytes header + data_size + 8 bytes footer)
-            data = self._i2c.read_block(self.address, self.kUiCmdStart, rd_size)
+            data = self._i2c.rd_multi(self.address, self.kUiCmdStart, rd_size)
             self.swap_buffer(self.temp_buffer, rd_size)
 
             for i in range(data_size):
@@ -664,22 +696,40 @@ class QwiicVL53L5CX(object):
         :return: True if the device is alive, otherwise False
         :rtype: bool
         """
-        self._i2c.write_byte(self.address, 0x7fff, 0x00)
-        device_id = self._i2c.read_byte(self.address, 0)
-        revision_id = self._i2c.read_byte(self.address, 1)  
-        self._i2c.write_byte(self.address, 0x7fff, 0x02)
+        self._i2c.wr_byte(self.address, 0x7fff, 0x00)
+        device_id = self._i2c.rd_byte(self.address, 0)
+        revision_id = self._i2c.rd_byte(self.address, 1)  
+        self._i2c.wr_byte(self.address, 0x7fff, 0x02)
 
         return (device_id == _DEVICE_ID) and (revision_id == _REVISION_ID)
         
-    # TODO: we might have to wrap this with the additional stuff that the sparkfun layer of the cpp lib does
     def set_i2c_address(self, i2c_address):
         """
         Set the I2C address of the device
 
         :param i2c_address: The new I2C address to use
         :type i2c_address: int
+
+        :return: True if the address was set successfully, otherwise False
+        :rtype: bool
         """
+        if i2c_address not in self.available_addresses:
+            return False
+
+        self._i2c.wr_byte(self.address, 0x7fff, 0x00)
+        self._i2c.wr_byte(self.address, 0x4, i2c_address)
         self.address = i2c_address
+        self._i2c.wr_byte(self.address, 0x7fff, 0x02)
+        return True
+    
+    def get_i2c_address(self):
+        """
+        Get the I2C address of the device
+
+        :return: The current I2C address
+        :rtype: int
+        """
+        return self.address
     
     def set_ranging_frequency_hz(self, frequency_hz):
         """
@@ -707,7 +757,7 @@ class QwiicVL53L5CX(object):
         :return: The current ranging frequency in Hz.
         :rtype: int
         """
-        self.dci_read_data(self.temp_buffer, self.kDciFreqHz, 4)
+        status = self.dci_read_data(self.temp_buffer, self.kDciFreqHz, 4)
         return self.temp_buffer[0x01]
     
     def set_resolution(self, resolution):
@@ -870,8 +920,7 @@ class QwiicVL53L5CX(object):
             available using ULD: Continuous and autonomous. The default
             mode is Autonomous.
             
-            :param ranging_mode: Use macros VL53L5CX_RANGING_MODE_CONTINUOUS,
-            VL53L5CX_RANGING_MODE_AUTONOMOUS.
+            :param ranging_mode: Use kRangingModeAutonomous, kRangingModeContinous 
             :type ranging_mode: int
             :return: status: 0 if set ranging mode is OK.
             :rtype: int
@@ -996,12 +1045,12 @@ class QwiicVL53L5CX(object):
         status |= self.dci_write_data(self.uint32_list_to_byte_list(output_bh_enable), self.kDciOutputEnables, 16)
 
         # Start xshut bypass (interrupt mode)
-        status |= self._i2c.write_byte(self.address, 0x7FFF, 0x00)
-        status |= self._i2c.write_byte(self.address, 0x09, 0x05)
-        status |= self._i2c.write_byte(self.address, 0x7FFF, 0x02)
+        status |= self._i2c.wr_byte(self.address, 0x7FFF, 0x00)
+        status |= self._i2c.wr_byte(self.address, 0x09, 0x05)
+        status |= self._i2c.wr_byte(self.address, 0x7FFF, 0x02)
 
         # Start ranging session
-        status |= self._i2c.write_block(self.address, self.kUiCmdEnd - (4 - 1), cmd, len(cmd))
+        status |= self._i2c.wr_multi(self.address, self.kUiCmdEnd - (4 - 1), cmd, len(cmd))
         status |= self.poll_for_answer(4, 1, self.kUiCmdStatus, 0xff, 0x03)
 
         return status
@@ -1016,21 +1065,21 @@ class QwiicVL53L5CX(object):
         """
         status = self.kStatusOK
 
-        auto_stop_flag = self._i2c.read_block(self.address, 0x2FFC, 4)
+        auto_stop_flag = self._i2c.rd_multi(self.address, 0x2FFC, 4)
         
         # TODO: check endianess of the auto_stop_flag here
         if auto_stop_flag != [0x00, 0x00, 0x04, 0xFF]:
-            self._i2c.write_byte(self.address, 0x7fff, 0x00)
+            self._i2c.wr_byte(self.address, 0x7fff, 0x00)
 
             # Provoke MCU stop
-            self._i2c.write_byte(self.address, 0x15, 0x16)
-            self._i2c.write_byte(self.address, 0x14, 0x01)
+            self._i2c.wr_byte(self.address, 0x15, 0x16)
+            self._i2c.wr_byte(self.address, 0x14, 0x01)
 
             # Poll for G02 status 0 MCU stop
             timeout = 0
             tmp = 0 
             while (tmp & 0x80) >> 7 == 0x00:
-                tmp = self._i2c.read_byte(self.address, 0x6)
+                tmp = self._i2c.rd_byte(self.address, 0x6)
                 time.sleep(0.010)
                 timeout += 1
 
@@ -1040,13 +1089,13 @@ class QwiicVL53L5CX(object):
                     break
 
         # Undo MCU stop
-        status |= self._i2c.write_byte(self.address, 0x7fff, 0x00)
-        status |= self._i2c.write_byte(self.address, 0x14, 0x00)
-        status |= self._i2c.write_byte(self.address, 0x15, 0x00)
+        status |= self._i2c.wr_byte(self.address, 0x7fff, 0x00)
+        status |= self._i2c.wr_byte(self.address, 0x14, 0x00)
+        status |= self._i2c.wr_byte(self.address, 0x15, 0x00)
 
         # Stop xshut bypass
-        status |= self._i2c.write_byte(self.address, 0x09, 0x04)
-        status |= self._i2c.write_byte(self.address, 0x7fff, 0x02)
+        status |= self._i2c.wr_byte(self.address, 0x09, 0x04)
+        status |= self._i2c.wr_byte(self.address, 0x7fff, 0x02)
 
         return status
     
@@ -1060,7 +1109,7 @@ class QwiicVL53L5CX(object):
         """
         
         # Check if new data is ready
-        self.temp_buffer[0:4] = self._i2c.read_block(self.address, 0x0, 4)
+        self.temp_buffer[0:4] = self._i2c.rd_multi(self.address, 0x0, 4)
 
         if  (    (self.temp_buffer[0] != self.stream_count) 
             and (self.temp_buffer[0] != 255) 
@@ -1085,7 +1134,7 @@ class QwiicVL53L5CX(object):
         data = RangingDataResults()
 
         # Get the data
-        self.temp_buffer[0:self.data_read_size] = self._i2c.read_block(self.address, 0x0, self.data_read_size)
+        self.temp_buffer[0:self.data_read_size] = self._i2c.rd_multi(self.address, 0x0, self.data_read_size)
         self.stream_count = self.temp_buffer[0]
         self.swap_buffer(self.temp_buffer, self.data_read_size)
         
@@ -1157,8 +1206,8 @@ class QwiicVL53L5CX(object):
             :return: The current power mode.
             :rtype: int
         """
-        self._i2c.write_byte(self.address, 0x7FFF, 0x00)
-        tmp = self._i2c.read_byte(self.address, 0x009)
+        self._i2c.wr_byte(self.address, 0x7FFF, 0x00)
+        tmp = self._i2c.rd_byte(self.address, 0x009)
 
         power_mode = self.kStatusError
 
@@ -1169,7 +1218,7 @@ class QwiicVL53L5CX(object):
         else:
             power_mode = self.kStatusError
 
-        self._i2c.write_byte(self.address, 0x7FFF, 0x02)
+        self._i2c.wr_byte(self.address, 0x7FFF, 0x02)
 
         return power_mode
 
@@ -1191,22 +1240,21 @@ class QwiicVL53L5CX(object):
         
         if power_mode != current_power_mode:
             if power_mode == self.kPowerModeWakeup:
-                self._i2c.write_byte(self.address, 0x7FFF, 0x00)
-                self._i2c.write_byte(self.address, 0x09, 0x04)
+                self._i2c.wr_byte(self.address, 0x7FFF, 0x00)
+                self._i2c.wr_byte(self.address, 0x09, 0x04)
                 status |= self.poll_for_answer(1, 0, 0x06, 0x01, 1)
 
             elif power_mode == self.kPowerModeSleep:
-                self._i2c.write_byte(self.address, 0x7FFF, 0x00)
-                self._i2c.write_byte(self.address, 0x09, 0x02)
+                self._i2c.wr_byte(self.address, 0x7FFF, 0x00)
+                self._i2c.wr_byte(self.address, 0x09, 0x02)
                 status |= self.poll_for_answer(1, 0, 0x06, 0x01, 0)
             else:
                 status = self.kStatusError
 
-            self._i2c.write_byte(self.address, 0x7FFF, 0x02)
+            self._i2c.wr_byte(self.address, 0x7FFF, 0x02)
         
         return status
     
-
     def get_integration_time_ms(self):
         """
             This function gets the current integration time in ms.
@@ -1311,13 +1359,87 @@ class QwiicVL53L5CX(object):
             status = self.kStatusInvalidParam
 
         return status
+    
+
+    def wr_multi(self, reg, values):
+        """
+            This function writes multiple bytes to a register. Enables 16 bit register address writes.
+
+            :param reg: The 16-bit register to write to.
+            :type reg: int
+            :param values: The values to write to the register.
+            :type values: list
+        """
+        bytes_to_write = [(reg >> 8) & 0xff, reg & 0xff] + values
+
+        # TODO: Ideally, the underlying drivers will make this work for very large sizes on each platform, 
+        #       But we have to be able to write 32,768 bytes at a time, so this might have to 
+        #       split up the writes into smaller chunks
+        self._i2c.write_block(self.address, bytes_to_write[0], bytes_to_write[1:])
+
+    def rd_multi(self, reg, num_bytes):
+        """
+            This function reads multiple bytes from a register. Enables 16 bit register address reads.
+
+            :param reg: The 16-bit register to read from.
+            :type reg: int
+            :param num_bytes: The number of bytes to read from the register.
+            :type num_bytes: int
+            :return: The values read from the register.
+            :rtype: list
+        """
+        bytes_to_write = [(reg >> 8) & 0xff, reg & 0xff]
+        self._i2c.write_block(self.address, bytes_to_write[0], bytes_to_write[1])
+        return self._i2c.read_block(self.address, None, num_bytes)
+
+    def wr_byte(self, reg, value):
+        """
+            This function writes a byte to a register. Enables 16 bit register address writes.
+
+            :param reg: The 16-bit register to write to.
+            :type reg: int
+            :param value: The value to write to the register.
+            :type value: int
+        """
+        bytes_to_write = [(reg >> 8) & 0xff, reg & 0xff, value]
+        self._i2c.write_block(self.address, bytes_to_write[0], bytes_to_write[1:])
+
+    def rd_byte(self, reg):
+        """
+            This function reads a single byte from a register. Enables 16 bit register address reads.
+
+            :param reg: The 16-bit register to read from.
+            :type reg: int
+            :return: The value read from the register.
+            :rtype: int
+        """
+        bytes_to_write = [(reg >> 8) & 0xff, reg & 0xff]
+        self._i2c.write_block(self.address, bytes_to_write[0], bytes_to_write[1])
+        return self._i2c.read_byte(self.address, None)
+    
+    def get_buffer_from_file(self, fileName, startByte = 0, endByte = None):
+        """
+            This function gets the buffer from the file. 
+            If endByte is None, the function will read until the end of the file.
+            Bytes returned will be [startByte, endByte) (endByte not included)
+
+            :param fileName: The name of the file to read from. 
+            fileName should be relative to the dataPath set in the constructor.
+            :type fileName: str
             
+            :param startByte: The start byte to read from the file.
+            :type startByte: int
+            :param endByte: The end byte to read from the file.
+            :type endByte: int
 
-
+            :return: The buffer read from the file.
+            :rtype: list
+        """
+        fName = os.path.join(self._dataPath, fileName)
+        with open(fName, 'rb') as f:
+            f.seek(startByte)
+            if endByte is None:
+                return list(f.read())
+            else:
+                return list(f.read(endByte - startByte))
             
-        
-
-
-        
-
-
