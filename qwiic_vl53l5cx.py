@@ -275,23 +275,17 @@ class QwiicVL53L5CX(object):
         if not self.is_connected():
             return False
 
-        print("Connected...")
         if not self.is_alive():
             return False
 
-        print("Alive...")
-        
         # Verify that the data folder exists and contains necessary binaries
         if not self.check_data_directory():
             return False
         
-        print("Data directory correct...")
-
         # Contents of the "vl53l5cx_init" function in the cpp lib
         pipe_ctrl = [self.kNbTargetPerZone, 0x00, 0x01, 0x00]
         single_range = 0x01
 
-        print("Starting reset")
         # Sw reboot sequence
         self.wr_byte(self.address, 0x7fff, 0x00)
         self.wr_byte(self.address, 0x0009, 0x04)
@@ -311,19 +305,15 @@ class QwiicVL53L5CX(object):
         self.wr_byte(self.address, 0x000F, 0x43)
         time.sleep(0.001)
 
-        print ("Initial reset complete, starting boot")
         self.wr_byte(self.address, 0x000F, 0x40)
         self.wr_byte(self.address, 0x000A, 0x01)
         time.sleep(1)
         
-        print("Boot trigger complete, starting firmware download")
         status = self.kStatusOK
 
         # Wait for sensor booted (several ms required to get sensor ready)
         self.wr_byte(self.address, 0x7FFF, 0x00)
         status |= self.poll_for_answer(1, 0, 0x06, 0xff, 1)
-
-        print("Sensor booted, starting firmware download")
 
         self.wr_byte(self.address, 0x000E, 0x01)
         self.wr_byte(self.address, 0x7fff, 0x02)
@@ -353,7 +343,6 @@ class QwiicVL53L5CX(object):
         self.wr_byte(self.address, 0x21A, 0x00)
         self.wr_byte(self.address, 0x219, 0x00)
         self.wr_byte(self.address, 0x21B, 0x00)
-        print("Powered on status complete")
 
         # Wake up MCU
         self.wr_byte(self.address, 0x7fff, 0x00)
@@ -361,7 +350,6 @@ class QwiicVL53L5CX(object):
         self.wr_byte(self.address, 0x7fff, 0x01)
         self.wr_byte(self.address, 0x0020, 0x07)
         self.wr_byte(self.address, 0x0020, 0x06)
-        print("MCU woken up")
 
         # Download FW into VL53L5
         self.wr_byte(self.address, 0x7fff, 0x09)
@@ -371,20 +359,14 @@ class QwiicVL53L5CX(object):
         self.wr_byte(self.address, 0x7fff, 0x0b)
         self.write_out_large_file(0, 'firmware.bin', 0x10000, 0x5000)
         self.wr_byte(self.address, 0x7fff, 0x01)
-        print("Firmware download complete")
 
         # Check if FW correctly downloaded
         self.wr_byte(self.address, 0x7fff, 0x02)
         self.wr_byte(self.address, 0x03, 0x0D)
         self.wr_byte(self.address, 0x7fff, 0x01)
         status |= self.poll_for_answer(1, 0, 0x21, 0x10, 0x10)
-        # TODO: remove this is redundant
-        bytes = self.rd_multi(self.address, 0x21, 1)
-        print("fw check byte: " + str(bytes[0]))
-        # endof remove this is redundant 
         self.wr_byte(self.address, 0x7fff, 0x00)
         self.wr_byte(self.address, 0x0C, 0x01)
-        print("Status of firmware download: ", status)
 
         # Reset MCU and wait boot
         self.wr_byte(self.address, 0x7FFF, 0x00)
@@ -395,11 +377,8 @@ class QwiicVL53L5CX(object):
         self.wr_byte(self.address, 0x0B, 0x00)
         self.wr_byte(self.address, 0x0C, 0x00)
         self.wr_byte(self.address, 0x0B, 0x01)
-        # TODO: might have to put a sleep here, previous libs have been upset when polling while coming out of boot
         status |= self.poll_for_answer(1, 0, 0x06, 0xff, 0x00)
         self.wr_byte(self.address, 0x7fff, 0x02)
-
-        print("MCU reset complete")
 
         # Get offset NVM data and store them into the offset buffer
         self.write_out_large_file(0x2fd8, 'get_nvm_cmd.bin', 0, self.kNvmCmdSize)
@@ -409,7 +388,6 @@ class QwiicVL53L5CX(object):
         self.offset_data[:self.kOffsetBufferSize] = self.temp_buffer[:self.kOffsetBufferSize]
 
         self.send_offset_data(self.kResolution4x4)
-        print("Offset data sent")
 
         # Set default Xtalk shape. Send Xtalk to sensor
         self.xtalk_data = self.get_buffer_from_file('default_xtalk.bin')[:self.kXTalkBufferSize]
@@ -420,8 +398,6 @@ class QwiicVL53L5CX(object):
         self.write_out_large_file(0x2c34, 'default_configuration.bin', 0, self.kConfigurationSize)
 
         status |= self.poll_for_answer(4, 1, self.kUiCmdStatus, 0xff, 0x03)
-        
-        print("Configuration sent")
         
         status |= self.dci_write_data(pipe_ctrl, self.kDciPipeControl, len(pipe_ctrl))
         

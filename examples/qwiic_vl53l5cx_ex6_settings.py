@@ -92,12 +92,12 @@ def runExample():
 	print("1...")
 	time.sleep(1)
 
-	if myVL53L5CX.set_power_mode(myVL53L5CX.kPowerModeWake) != myVL53L5CX.kStatusOK:
+	if myVL53L5CX.set_power_mode(myVL53L5CX.kPowerModeWakeup) != myVL53L5CX.kStatusOK:
 		print("Failed to set power mode to wake")
 		sys.exit(1)
 	
 	# Check that the sensor has been set to the expected mode
-	if myVL53L5CX.get_power_mode() != myVL53L5CX.kPowerModeWake:
+	if myVL53L5CX.get_power_mode() != myVL53L5CX.kPowerModeWakeup:
 		print("Failed to read correct power mode")
 		sys.exit(1)
 	else:

@@ -59,11 +59,11 @@ def runExample():
 	newAddress = 0x44 # You can change this to any value in the range 0x08 <= newAddress <= 0x77
 	print("Press any key, followed by enter to set the address of the sensor to:", hex(newAddress))
 	input()
-	if myVL53L5CX.set_address(newAddress) == False:
+	if myVL53L5CX.set_i2c_address(newAddress) == False:
 		print("Failed to set address. Exiting...", file=sys.stderr)
 		sys.exit(1)
 	
-	print("Sensor address is now:", myVL53L5CX.get_i2c_address())
+	print("Sensor address is now:", hex(myVL53L5CX.get_i2c_address()))
 	
 	myVL53L5CX.set_resolution(8*8) # enable all 64 pads
 	image_resolution = myVL53L5CX.get_resolution()  # Query sensor for current resolution - either 4x4 or 8x8
