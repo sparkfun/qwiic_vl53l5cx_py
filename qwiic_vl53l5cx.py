@@ -1428,6 +1428,44 @@ class QwiicVL53L5CX(object):
         # self._i2c.write_block(addr, bytes_to_write[0], bytes_to_write[1])
         return self._i2c.read_byte(addr, None)
     
+    def get_buffer_from_open_file(self, f, startByte = 0, endByte = None):
+        """
+        This function gets the buffer from an open file.
+        If endByte is None, the function will read until the end of the file.
+        Bytes returned will be [startByte, endByte) (endByte not included)
+
+        :param f: The file to read from.
+        :type f: open binary file
+        :param startByte: The start byte to read from the file.
+        :type startByte: int
+        :param endByte: The end byte to read from the file.
+        :type endByte: int
+
+        :return: The buffer read from the file.
+        :rtype: list
+        """
+        f.seek(startByte)
+        if endByte is None:
+            return list(f.read())
+        else:
+            return list(f.read(endByte - startByte))
+
+    def get_absolute_data_path(self, fileName):
+        """
+            This function gets the absolute path to a data file.
+
+            :param fileName: The relative path of the data file to get the absolute path for.
+            :type fileName: str
+
+            :return: The absolute path to the file.
+            :rtype: str
+        """
+        fName = self._dataPath 
+        if self._dataPath[-1] != '/':
+            fName += '/'
+        fName += fileName
+        return fName
+
     def get_buffer_from_file(self, fileName, startByte = 0, endByte = None):
         """
             This function gets the buffer from the file. 
@@ -1446,21 +1484,13 @@ class QwiicVL53L5CX(object):
             :return: The buffer read from the file.
             :rtype: list
         """
-        fName = self._dataPath 
-        if self._dataPath[-1] != '/':
-            fName += '/'
-        fName += fileName
+        fName = self.get_absolute_data_path(fileName)
 
         with open(fName, 'rb') as f:
-            f.seek(startByte)
-            if endByte is None:
-                return list(f.read())
-            else:
-                return list(f.read(endByte - startByte))
+            return self.get_buffer_from_open_file(f, startByte, endByte)
     
-    # TODO: This is quite slow and inefficient (it opens and closes a file for every tiny write)
-    #       can optimize this once we get everything working.
-    def write_out_large_file(self, reg, fileName, startByte = 0, size = 0, chunkSize = 32):
+    # TODO: This could still use some optimization...
+    def write_out_large_file(self, reg, fileName, startByte = 0, size = 0, writeChunkSize = 32, readChunkSize = 4096):
         """
             This function writes out a large buffer file to i2c bus. 
             The function will write out the file in chunks of chunkSize bytes.
@@ -1477,10 +1507,14 @@ class QwiicVL53L5CX(object):
             :type chunkSize: int
         """
         currentReg = reg
-
-        for i in range(startByte, startByte + size, chunkSize):
-            regToWrite = [(currentReg >> 8) & 0xff, currentReg & 0xff]
-            endByte = min(i + chunkSize, startByte + size)
-            data = self.get_buffer_from_file(fileName, i, endByte)
-            self._i2c.write_block(self.address, regToWrite[0], regToWrite[1:] + data)
-            currentReg += len(data)
+        
+        # Read files out in readChunkSize and write them out over i2c in writeChunkSize
+        with open(self.get_absolute_data_path(fileName), 'rb') as f:
+            for readStart in range(startByte, startByte + size, readChunkSize):
+                endByte = min(readStart + readChunkSize, startByte + size)
+                data = self.get_buffer_from_open_file(f, readStart, endByte)
+                for writeStart in range(0, len(data), writeChunkSize):
+                    regToWrite = [(currentReg >> 8) & 0xff, currentReg & 0xff]
+                    endByte = min(writeStart + writeChunkSize, len(data))
+                    self._i2c.write_block(self.address, regToWrite[0], regToWrite[1:] + data[writeStart:endByte])
+                    currentReg += len(data[writeStart:endByte])
