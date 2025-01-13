@@ -36,7 +36,7 @@
 # SOFTWARE.
 #===============================================================================
 
-"""
+"""!
 qwiic_vl53l5cx
 ============
 Python module for the [SparkFun Qwiic ToF Imager - VL53L5CX](https://www.sparkfun.com/products/18642)
@@ -69,7 +69,7 @@ _DEVICE_ID = 0xF0
 
 # This class contains the results from a ranging operation
 class RangingDataResults(object):
-    """
+    """!
     Class RangingDataResults contains the ranging results of VL53L5CX. 
     If user wants more than 1 target per zone, the results can be split into 2 sub-groups:
     - Per zone results. These results are common to all targets (ambient_per_spad, nb_target_detected, and nb_spads_enabled).
@@ -196,17 +196,14 @@ class QwiicVL53L5CX(object):
     kNvmCmdSize = 40
 
     def __init__(self, address=None, i2c_driver=None, dataPath = "/lib/vl53l5cx_bin"):
-        """
+        """!
         Constructor
 
-        :param address: The I2C address to use for the device
+        @param int, optional address: The I2C address to use for the device
             If not provided, the default address is used
-        :type address: int, optional
-        :param i2c_driver: An existing i2c driver object
+        @param I2CDriver, optional i2c_driver: An existing i2c driver object
             If not provided, a driver object is created
-        :type i2c_driver: I2CDriver, optional
-        :param dataPath: The absolute path to the data directory.
-        :type dataPath: str
+        @param str dataPath: The absolute path to the data directory.
         """
 
         # Use address if provided, otherwise pick the default
@@ -236,22 +233,20 @@ class QwiicVL53L5CX(object):
 
 
     def is_connected(self):
-        """
+        """!
         Determines if this device is connected
 
-        :return: `True` if connected, otherwise `False`
-        :rtype: bool
+        @return **bool** `True` if connected, otherwise `False`
         """
         return self._i2c.isDeviceConnected(self.address)
             
     connected = property(is_connected)
 
     def check_data_directory(self):
-        """
+        """!
         Checks if the data directory exists and contains the necessary files
 
-        :return: `True` if the data directory exists and contains the necessary files, otherwise `False`
-        :rtype: bool
+        @return **bool** `True` if the data directory exists and contains the necessary files, otherwise `False`
         """
 
         for file in ['firmware.bin', 
@@ -265,11 +260,10 @@ class QwiicVL53L5CX(object):
         return True
 
     def begin(self):
-        """
+        """!
         Initializes this device with default parameters
 
-        :return: Returns `True` if successful, otherwise `False`
-        :rtype: bool
+        @return **bool** Returns `True` if successful, otherwise `False`
         """
         # Confirm device is connected before doing anything
         if not self.is_connected():
@@ -407,32 +401,27 @@ class QwiicVL53L5CX(object):
     
 
     def swap_buffer(self, buffer, size):
-        """
+        """!
         Used to swap a buffer. The buffer size is always a multiple of 4 (4, 8, 12, 16, ...).
-        :param buffer: The byte buffer to swap
-        :type buffer: list
-        :param size: Buffer size to swap
-        :type size: int
+
+        @param list buffer: The byte buffer to swap
+        @param int size: Buffer size to swap
         """
         for i in range (0, size, 4):
             buffer[i], buffer[i+1], buffer[i+2], buffer[i+3] = buffer[i+3], buffer[i+2], buffer[i+1], buffer[i]
 
 
     def poll_for_answer(self, size, pos, addr, mask, expected_value):
-        """
+        """!
         This function is used to wait for an answer from the VL53L5CX sensor.
-        :param size: The number of bytes to read
-        :type size: int
-        :param pos: The position in the buffer to check against expected_value
-        :type pos: int
-        :param address: The address to read from
-        :type address: int
-        :param mask: The mask to apply to the value read (at pos) before comparing to expected_value
-        :type mask: int
-        :param expected_value: The value to compare against the value read (at pos)
-        :type expected_value: int
-        :return: kStatusOk on success, other on failure
-        :rtype: int
+
+        @param int size: The number of bytes to read
+        @param int pos: The position in the buffer to check against expected_value
+        @param int address: The address to read from
+        @param int mask: The mask to apply to the value read (at pos) before comparing to expected_value
+        @param int expected_value: The value to compare against the value read (at pos)
+
+        @return **int** kStatusOk on success, other on failure
         """
         status = self.kStatusOK
         timeout = 0
@@ -458,15 +447,17 @@ class QwiicVL53L5CX(object):
         return status
 
     def send_offset_data(self, resolution):
-        """
+        """!
         This function is used to set the offset data gathered from NVM.
 
-        :param resolution: The resolution of the sensor 
-        :type resolution: int
+        @param int resolution: The resolution of the sensor
+
             Allowable values for resolution:
             - kResolution4x4
             - kResolution8x8
-        :return: kStatusOk on success, other on failure
+
+        @return  kStatusOk on success, other on failure
+        
         """
         status = self.kStatusOK
 
@@ -518,14 +509,17 @@ class QwiicVL53L5CX(object):
         return status
     
     def send_xtalk_data(self, resolution):
-        """
+        """!
         This function is used to set the Xtalk data from generic configuration, or user's calibration.
-        :param resolution: The resolution of the sensor
-        :type resolution: int
+
+        @param int resolution: The resolution of the sensor
+
             Allowable values for resolution:
             - kResolution4x4
             - kResolution8x8
-        :return: kStatusOk on success, other on failure
+
+        @return  kStatusOk on success, other on failure
+        
         """
         status = self.kStatusOK
 
@@ -566,20 +560,18 @@ class QwiicVL53L5CX(object):
         return status
 
     def dci_write_data(self, data, index, data_size):
-        """
+        """!
             This function can be used to write 'extra data' to DCI. The data can
             be simple data, or casted structure.
-            :param data : This field can be a casted structure, or a simple
+
+            @param list data: This field can be a casted structure, or a simple
             array. Please note that the FW only accept data of 32 bits. So field data can
             only have a size of 32, 64, 96, 128, bits ..
-            :type data : list
-            :param index : Index of required value.
-            :type index : int
-            :param data_size : This field must be the structure or array size
-            :type data_size : int
-            :return status : 0 if OK
-            :rtype : int
-        """
+            @param int index: Index of required value.
+            @param int data_size: This field must be the structure or array size
+
+            @return **int** status: 0 if OK
+            """
         status = self.kStatusOK
         headers = [0x00, 0x00, 0x00, 0x00]
         footer = [0x00, 0x00, 0x00, 0x0f, 0x05, 0x01,
@@ -614,20 +606,18 @@ class QwiicVL53L5CX(object):
         return status
     
     def dci_read_data(self, data, index, data_size):
-        """
+        """!
             This function can be used to read 'extra data' from DCI. Using a known
             index, the function fills the casted structure passed in argument.
-            :param data: This field can be a casted structure, or a simple
+
+            @param list data: This field can be a casted structure, or a simple
             array. Please note that the FW only accept data of 32 bits. So field data can
             only have a size of 32, 64, 96, 128, bits ....
-            :type data: list
-            :param index: Index of required value.
-            :type index: int
-            :param data_size: This field must be the structure or array size
-            :type data_size: int
-            :return: status: 0 if OK
-            :rtype: int
-        """
+            @param int index: Index of required value.
+            @param int data_size: This field must be the structure or array size
+
+            @return **int** status: 0 if OK
+            """
 
         status = self.kStatusOK
         rd_size = data_size + 12
@@ -658,27 +648,21 @@ class QwiicVL53L5CX(object):
         return status
     
     def dci_replace_data(self, data, index, data_size, new_data, new_data_size, new_data_pos):
-        """
+        """!
             This function can be used to replace 'extra data' in DCI. The data can
             be simple data, or casted structure.
-            
-            :param data: This field can be a casted structure, or a simple array. 
+
+            @param list data: This field can be a casted structure, or a simple array. 
                         Please note that the FW only accepts data of 32 bits. 
                         So field data can only have a size of 32, 64, 96, 128 bits, etc.
-            :type data: list
-            :param index: Index of required value.
-            :type index: int
-            :param data_size: This field must be the structure or array size.
-            :type data_size: int
-            :param new_data: Contains the new fields.
-            :type new_data: list
-            :param new_data_size: New data size.
-            :type new_data_size: int
-            :param new_data_pos: New data position into the buffer.
-            :type new_data_pos: int
-            :return: status: 0 if OK
-            :rtype: int
-        """
+            @param int index: Index of required value.
+            @param int data_size: This field must be the structure or array size.
+            @param list new_data: Contains the new fields.
+            @param int new_data_size: New data size.
+            @param int new_data_pos: New data position into the buffer.
+
+            @return **int** status: 0 if OK
+            """
         status = self.kStatusOK
         status |= self.dci_read_data(data, index, data_size)
         data[new_data_pos:new_data_pos+new_data_size] = new_data
@@ -687,11 +671,10 @@ class QwiicVL53L5CX(object):
         return status
 
     def is_alive(self):
-        """
+        """!
         Check if the device is alive
 
-        :return: True if the device is alive, otherwise False
-        :rtype: bool
+        @return **bool** True if the device is alive, otherwise False
         """
         self.wr_byte(self.address, 0x7fff, 0x00)
         device_id = self.rd_byte(self.address, 0)
@@ -701,14 +684,12 @@ class QwiicVL53L5CX(object):
         return (device_id == _DEVICE_ID) and (revision_id == _REVISION_ID)
         
     def set_i2c_address(self, i2c_address):
-        """
+        """!
         Set the I2C address of the device
 
-        :param i2c_address: The new I2C address to use
-        :type i2c_address: int
+        @param int i2c_address: The new I2C address to use
 
-        :return: True if the address was set successfully, otherwise False
-        :rtype: bool
+        @return **bool** True if the address was set successfully, otherwise False
         """
         if i2c_address not in self.available_addresses:
             return False
@@ -720,26 +701,26 @@ class QwiicVL53L5CX(object):
         return True
     
     def get_i2c_address(self):
-        """
+        """!
         Get the I2C address of the device
 
-        :return: The current I2C address
-        :rtype: int
+        @return **int** The current I2C address
         """
         return self.address
     
     def set_ranging_frequency_hz(self, frequency_hz):
-        """
+        """!
             This function sets a new ranging frequency in Hz. Ranging frequency
             corresponds to the measurements frequency. This setting depends on
             the resolution, so please select your resolution before using this function.
 
-            :param frequency_hz: Contains the ranging frequency in Hz.
+            @param int frequency_hz: Contains the ranging frequency in Hz.
                 - For 4x4, min and max allowed values are: [1;60]
                 - For 8x8, min and max allowed values are: [1;15]
-            :type frequency_hz: int
-            :return: True on success and False on error.
-        """
+
+            @return  True on success and False on error.
+        
+            """
 
         status = self.kStatusOK
         status |= self.dci_replace_data(self.temp_buffer, self.kDciFreqHz, 4, [frequency_hz], 1, 0x01)
@@ -747,25 +728,23 @@ class QwiicVL53L5CX(object):
         return status == self.kStatusOK
 
     def get_ranging_frequency_hz(self):
-        """
+        """!
         This function gets the current ranging frequency in Hz. Ranging
         frequency corresponds to the time between each measurement.
-        
-        :return: The current ranging frequency in Hz.
-        :rtype: int
+
+        @return **int** The current ranging frequency in Hz.
         """
         status = self.dci_read_data(self.temp_buffer, self.kDciFreqHz, 4)
         return self.temp_buffer[0x01]
     
     def set_resolution(self, resolution):
-        """
+        """!
             This function sets a new resolution (4x4 or 8x8).
-            
-            :param resolution: Use kResolution4x4 or kResolution8x8 to set the resolution.
-            :type resolution: int
-            :return: status: 0 if set resolution is OK.
-            :rtype: int
-        """
+
+            @param int resolution: Use kResolution4x4 or kResolution8x8 to set the resolution.
+
+            @return **int** status: 0 if set resolution is OK.
+            """
         status = self.kStatusOK
 
         if resolution == self.kResolution4x4:
@@ -805,22 +784,23 @@ class QwiicVL53L5CX(object):
         return status
 
     def get_resolution(self):
-        """
+        """!
             This function gets the current resolution (4x4 or 8x8).
-            
-            :return: The current resolution. 16 for 4x4 mode, and 64 for 8x8 mode.
-            :rtype: int
-        """
+
+            @return **int** The current resolution. 16 for 4x4 mode, and 64 for 8x8 mode.
+            """
         self.dci_read_data(self.temp_buffer, self.kDciZoneConfig, 8)
         return self.temp_buffer[0x00] * self.temp_buffer[0x01]
     
     def uint32_list_to_byte_list(self, uint32_list):
-        """
+        """!
             This function converts a list of uint32 values to a list of bytes.
-            :param uint32_list: The list of uint32 values to convert.
-            :type uint32_list: list
-            :return: The list of bytes.
-        """
+
+            @param list uint32_list: The list of uint32 values to convert.
+
+            @return  The list of bytes.
+        
+            """
         byte_list = []
         for i in range(len(uint32_list)):
             byte_list.append(uint32_list[i] & 0xFF)
@@ -831,27 +811,26 @@ class QwiicVL53L5CX(object):
         return byte_list
     
     def byte_list_to_uint32(self, byte_list):
-        """
+        """!
             This function converts a list of bytes to a single uint32 value
 
-            :param byte_list: The list of bytes to convert.
-            :type byte_list: list
+            @param list byte_list: The list of bytes to convert.
 
-            :return: The uint32 value
-        """
+            @return  The uint32 value
+        
+            """
         return (byte_list[3] << 24) | (byte_list[2] << 16) | (byte_list[1] << 8) | byte_list[0]
 
     def byte_list_to_uint32_list(self, byte_list, uint32_list):
-        """
+        """!
             This function converts a list of bytes into uint32 values and places at the start of the uint32 list.
 
-            :param byte_list: The list of bytes to convert.
-            :type byte_list: list
-            :param uint32_list: The list of uint32 values to convert.
-            :type uint32_list: list
+            @param list byte_list: The list of bytes to convert.
+            @param list uint32_list: The list of uint32 values to convert.
 
-            :return: 0 if successful, -1 if the byte list is not a multiple of 4, or if the uint32 list is too small.
-        """
+            @return  0 if successful, -1 if the byte list is not a multiple of 4, or if the uint32 list is too small.
+        
+            """
         if len(byte_list) % 4 != 0:
             return -1 
         if len(uint32_list) < len(byte_list) // 4:
@@ -864,15 +843,15 @@ class QwiicVL53L5CX(object):
 
     
     def byte_list_to_uint16_list(self, byte_list, uint16_list):
-        """
+        """!
             This function converts a list of bytes to a list of uint16 values and places at the start of the uint16 list.
 
-            :param byte_list: The list of bytes to convert.
-            :type byte_list: list
-            :param uint16_list: The list of uint16 values to convert.
-            :type uint16_list: list
-            :return: 0 if successful, -1 if the byte list is not a multiple of 2, or if the uint16 list is too small.
-        """
+            @param list byte_list: The list of bytes to convert.
+            @param list uint16_list: The list of uint16 values to convert.
+
+            @return  0 if successful, -1 if the byte list is not a multiple of 2, or if the uint16 list is too small.
+        
+            """
 
         if len(byte_list) % 2 != 0:
             return -1
@@ -885,15 +864,15 @@ class QwiicVL53L5CX(object):
         return 0
     
     def byte_list_to_int16_list(self, byte_list, int16_list):
-        """
+        """!
             This function converts a list of bytes to a list of int16 values and places at the start of the int16 list.
 
-            :param byte_list: The list of bytes to convert.
-            :type byte_list: list
-            :param int16_list: The list of int16 values to convert.
-            :type int16_list: list
-            :return: 0 if successful, -1 if the byte list is not a multiple of 2, or if the int16 list is too small.
-        """
+            @param list byte_list: The list of bytes to convert.
+            @param list int16_list: The list of int16 values to convert.
+
+            @return  0 if successful, -1 if the byte list is not a multiple of 2, or if the int16 list is too small.
+        
+            """
 
         if len(byte_list) % 2 != 0:
             return -1
@@ -909,16 +888,15 @@ class QwiicVL53L5CX(object):
 
         
     def set_ranging_mode(self, ranging_mode):
-        """
+        """!
             This function is used to set the ranging mode. Two modes are
             available using ULD: Continuous and autonomous. The default
             mode is Autonomous.
-            
-            :param ranging_mode: Use kRangingModeAutonomous, kRangingModeContinous 
-            :type ranging_mode: int
-            :return: status: 0 if set ranging mode is OK.
-            :rtype: int
-        """
+
+            @param int ranging_mode: Use kRangingModeAutonomous, kRangingModeContinous
+
+            @return **int** status: 0 if set ranging mode is OK.
+            """
         status = self.kStatusOK
 
         status |= self.dci_read_data(self.temp_buffer, self.kDciRangingMode, 8)
@@ -940,14 +918,13 @@ class QwiicVL53L5CX(object):
         return status
 
     def get_ranging_mode(self):
-        """
+        """!
             This function is used to get the ranging mode. Two modes are
             available using ULD: Continuous and autonomous. The default
             mode is Autonomous.
 
-            :return: The current ranging mode.
-            :rtype: int
-        """
+            @return **int** The current ranging mode.
+            """
         self.dci_read_data(self.temp_buffer, self.kDciRangingMode, 8)
 
         if self.temp_buffer[0x01] == 0x1:
@@ -956,13 +933,12 @@ class QwiicVL53L5CX(object):
             return self.kRangingModeAutonomous
 
     def start_ranging(self):
-        """
+        """!
             This function starts a ranging session. When the sensor streams, host
             cannot change settings 'on-the-fly'.
-            
-            :return: status: 0 if start is OK.
-            :rtype: int
-        """
+
+            @return **int** status: 0 if start is OK.
+            """
     
         status = self.kStatusOK
         header_config = [0,0]
@@ -1054,13 +1030,12 @@ class QwiicVL53L5CX(object):
         return status
 
     def stop_ranging(self):
-        """
+        """!
             This function stops a ranging session. It must be used when the
             sensor streams, after calling vl53l5cx_start_ranging().
-            
-            :return: status: 0 if stop is OK.
-            :rtype: int
-        """
+
+            @return **int** status: 0 if stop is OK.
+            """
         status = self.kStatusOK
 
         auto_stop_flag = self.rd_multi(self.address, 0x2FFC, 4)
@@ -1098,12 +1073,11 @@ class QwiicVL53L5CX(object):
         return status
     
     def check_data_ready(self):
-        """
+        """!
         This function checks if new data is ready by polling I2C. If new
         data is ready, a flag will be raised.
-        
-        :return: True if new data is ready, otherwise False
-        :rtype: bool
+
+        @return **bool** True if new data is ready, otherwise False
         """
         
         # Check if new data is ready
@@ -1123,12 +1097,11 @@ class QwiicVL53L5CX(object):
             return False
 
     def get_ranging_data(self):
-        """
+        """!
         This function gets the ranging data, using the selected output and the
         resolution.
-        
-        :return: The ranging data
-        :rtype: RangingDataResults
+
+        @return **RangingDataResults** The ranging data
         """
         status = self.kStatusOK
         data = RangingDataResults()
@@ -1200,12 +1173,11 @@ class QwiicVL53L5CX(object):
         return data
     
     def get_power_mode(self):
-        """
+        """!
             This function is used to get the current sensor power mode.
 
-            :return: The current power mode.
-            :rtype: int
-        """
+            @return **int** The current power mode.
+            """
         self.wr_byte(self.address, 0x7FFF, 0x00)
         tmp = self.rd_byte(self.address, 0x009)
 
@@ -1223,16 +1195,15 @@ class QwiicVL53L5CX(object):
         return power_mode
 
     def set_power_mode(self, power_mode):
-        """
+        """!
             This function is used to set the sensor in Low Power mode, for example if the sensor is not used during a long time. 
             The macro kPowerModeSleep can be used to enable the low power mode. When user wants to restart the sensor, 
             they can use the macro kPowerModeWakeup. Please ensure that the device is not streaming before calling the function.
 
-            :param power_mode: Selected power mode (kPowerModeSleep or kPowerModeWakeup)
-            :type power_mode: int
-            :return: status: 0 if set power mode is OK.
-            :rtype: int
-        """
+            @param int power_mode: Selected power mode (kPowerModeSleep or kPowerModeWakeup)
+
+            @return **int** status: 0 if set power mode is OK.
+            """
 
         status = self.kStatusOK
         
@@ -1256,30 +1227,28 @@ class QwiicVL53L5CX(object):
         return status
     
     def get_integration_time_ms(self):
-        """
+        """!
             This function gets the current integration time in ms.
 
-            :return: The current integration time in ms.
-            :rtype: int
-        """
+            @return **int** The current integration time in ms.
+            """
         self.dci_read_data(self.temp_buffer, self.kDciIntegrationTime, 20)
 
         p_time_ms = self.byte_list_to_uint32(self.temp_buffer[0:4])
         return p_time_ms // 1000
     
     def set_integration_time_ms(self, integration_time_ms):
-        """
+        """!
             This function sets a new integration time in ms. Integration time must
             be computed to be lower than the ranging period, for a selected resolution.
             Please note that this function has no impact on ranging mode continuous.
-            
-            :param integration_time_ms: Contains the integration time in ms. For all
+
+            @param int integration_time_ms: Contains the integration time in ms. For all
                 resolutions and frequency, the minimum value is 2ms, and the maximum is
                 1000ms.
-            :type integration_time_ms: int
-            :return: status: 0 if set integration time is OK.
-            :rtype: int
-        """
+
+            @return **int** status: 0 if set integration time is OK.
+            """
         status = self.kStatusOK
 
         integration = integration_time_ms 
@@ -1292,29 +1261,27 @@ class QwiicVL53L5CX(object):
         return status
     
     def get_sharpener_percent(self):
-        """
+        """!
             This function gets the current sharpener in percent. Sharpener can be
             changed to blur more or less zones depending on the application.
 
-            :return: The current sharpener in percent.
-            :rtype: int
-        """
+            @return **int** The current sharpener in percent.
+            """
 
         self.dci_read_data(self.temp_buffer, self.kDciSharpenerPercent, 16)
         
         return (self.temp_buffer[0xD] * 100) // 255
 
     def set_sharpener_percent(self, sharpener_percent):
-        """
+        """!
             This function sets a new sharpener value in percent. Sharpener can be
             changed to blur more or less zones depending on the application. Min value is
             0 (disabled), and max is 99.
 
-            :param sharpener_percent: Value between 0 (disabled) and 99%.
-            :type sharpener_percent: int
-            :return: status: 0 if set sharpener is OK.
-            :rtype: int
-        """
+            @param int sharpener_percent: Value between 0 (disabled) and 99%.
+
+            @return **int** status: 0 if set sharpener is OK.
+            """
 
         status = self.kStatusOK
 
@@ -1327,29 +1294,27 @@ class QwiicVL53L5CX(object):
         return status
     
     def get_target_order(self):
-        """
+        """!
             This function gets the current target order (closest or strongest).
 
-            :return: The current target order.
-            :rtype: int
-        """
+            @return **int** The current target order.
+            """
 
         self.dci_read_data(self.temp_buffer, self.kDciTargetOrder, 4)
 
         return self.temp_buffer[0x0]
     
     def set_target_order(self, target_order):
-        """
+        """!
             This function sets a new target order. Please use macros
             VL53L5CX_TARGET_ORDER_STRONGEST and VL53L5CX_TARGET_ORDER_CLOSEST to define
             the new output order. By default, the sensor is configured with the strongest
             output.
 
-            :param target_order: Required target order.
-            :type target_order: int
-            :return: status: 0 if set target order is OK, or 127 if target order is unknown.
-            :rtype: int
-        """
+            @param int target_order: Required target order.
+
+            @return **int** status: 0 if set target order is OK, or 127 if target order is unknown.
+            """
         
         status = self.kStatusOK
 
@@ -1362,14 +1327,12 @@ class QwiicVL53L5CX(object):
     
 
     def wr_multi(self, addr, reg, values, chunkSize = 30): # chunkSize of 30 lines up with 2 register bytes and the 32 byte limit from Arduino
-        """
+        """!
             This function writes multiple bytes to a register. Enables 16 bit register address writes.
 
-            :param reg: The 16-bit register to write to.
-            :type reg: int
-            :param values: The values to write to the register.
-            :type values: list
-        """
+            @param int reg: The 16-bit register to write to.
+            @param list values: The values to write to the register.
+            """
         for i in range(0, len(values), chunkSize):
             currentReg = reg + i
             regToWrite = [(currentReg >> 8) & 0xff, currentReg & 0xff]
@@ -1377,18 +1340,15 @@ class QwiicVL53L5CX(object):
             self._i2c.write_block(addr, regToWrite[0], regToWrite[1:] + values[i:endByte])
 
     def rd_multi(self, addr, reg, numBytes, chunkSize = 32):
-        """
+        """!
             This function reads multiple bytes from a register. Enables 16 bit register address reads.
 
-            :param reg: The 16-bit register to read from.
-            :type reg: int
-            :param numBytes: The number of bytes to read from the register.
-            :type numBytes: int
-            :param chunkSize: The max size of the chunks to read at a time.
-            :type chunkSize: int
-            :return: The values read from the register.
-            :rtype: list
-        """
+            @param int reg: The 16-bit register to read from.
+            @param int numBytes: The number of bytes to read from the register.
+            @param int chunkSize: The max size of the chunks to read at a time.
+
+            @return **list** The values read from the register.
+            """
 
         bytesToWrite = [(reg >> 8) & 0xff, reg & 0xff]
         self._i2c.write_byte(addr, bytesToWrite[0], bytesToWrite[1])
@@ -1403,46 +1363,39 @@ class QwiicVL53L5CX(object):
         return data
 
     def wr_byte(self, addr, reg, value):
-        """
+        """!
             This function writes a byte to a register. Enables 16 bit register address writes.
 
-            :param reg: The 16-bit register to write to.
-            :type reg: int
-            :param value: The value to write to the register.
-            :type value: int
-        """
+            @param int reg: The 16-bit register to write to.
+            @param int value: The value to write to the register.
+            """
         bytesToWrite = [(reg >> 8) & 0xff, reg & 0xff, value]
         self._i2c.write_block(addr, bytesToWrite[0], bytesToWrite[1:])
 
     def rd_byte(self, addr, reg):
-        """
+        """!
             This function reads a single byte from a register. Enables 16 bit register address reads.
 
-            :param reg: The 16-bit register to read from.
-            :type reg: int
-            :return: The value read from the register.
-            :rtype: int
-        """
+            @param int reg: The 16-bit register to read from.
+
+            @return **int** The value read from the register.
+            """
         bytesToWrite = [(reg >> 8) & 0xff, reg & 0xff]
         self._i2c.write_byte(addr, bytesToWrite[0], bytesToWrite[1])
         # self._i2c.write_block(addr, bytes_to_write[0], bytes_to_write[1])
         return self._i2c.read_byte(addr, None)
     
     def get_buffer_from_open_file(self, f, startByte = 0, endByte = None):
-        """
+        """!
         This function gets the buffer from an open file.
         If endByte is None, the function will read until the end of the file.
         Bytes returned will be [startByte, endByte) (endByte not included)
 
-        :param f: The file to read from.
-        :type f: open binary file
-        :param startByte: The start byte to read from the file.
-        :type startByte: int
-        :param endByte: The end byte to read from the file.
-        :type endByte: int
+        @param open binary file f: The file to read from.
+        @param int startByte: The start byte to read from the file.
+        @param int endByte: The end byte to read from the file.
 
-        :return: The buffer read from the file.
-        :rtype: list
+        @return **list** The buffer read from the file.
         """
         f.seek(startByte)
         if endByte is None:
@@ -1451,15 +1404,13 @@ class QwiicVL53L5CX(object):
             return list(f.read(endByte - startByte))
 
     def get_absolute_data_path(self, fileName):
-        """
+        """!
             This function gets the absolute path to a data file.
 
-            :param fileName: The relative path of the data file to get the absolute path for.
-            :type fileName: str
+            @param str fileName: The relative path of the data file to get the absolute path for.
 
-            :return: The absolute path to the file.
-            :rtype: str
-        """
+            @return **str** The absolute path to the file.
+            """
         fName = self._dataPath 
         if self._dataPath[-1] != '/':
             fName += '/'
@@ -1467,23 +1418,18 @@ class QwiicVL53L5CX(object):
         return fName
 
     def get_buffer_from_file(self, fileName, startByte = 0, endByte = None):
-        """
+        """!
             This function gets the buffer from the file. 
             If endByte is None, the function will read until the end of the file.
             Bytes returned will be [startByte, endByte) (endByte not included)
 
-            :param fileName: The name of the file to read from. 
+            @param str fileName: The name of the file to read from. 
             fileName should be relative to the dataPath set in the constructor.
-            :type fileName: str
-            
-            :param startByte: The start byte to read from the file.
-            :type startByte: int
-            :param endByte: The end byte to read from the file.
-            :type endByte: int
+            @param int startByte: The start byte to read from the file.
+            @param int endByte: The end byte to read from the file.
 
-            :return: The buffer read from the file.
-            :rtype: list
-        """
+            @return **list** The buffer read from the file.
+            """
         fName = self.get_absolute_data_path(fileName)
 
         with open(fName, 'rb') as f:
@@ -1491,21 +1437,16 @@ class QwiicVL53L5CX(object):
     
     # TODO: This could still use some optimization...
     def write_out_large_file(self, reg, fileName, startByte = 0, size = 0, writeChunkSize = 32, readChunkSize = 4096):
-        """
+        """!
             This function writes out a large buffer file to i2c bus. 
             The function will write out the file in chunks of chunkSize bytes.
 
-            :param fileName: The name of the file to write from
+            @param str fileName: The name of the file to write from
             fileName should be relative to the dataPath set in the constructor.
-            :type fileName: str
-            
-            :param startByte: The start byte to write from the file.
-            :type startByte: int
-            :param size: How many bytes of the file to write.
-            :type size: int
-            :param chunkSize: The size of the chunks to write out.
-            :type chunkSize: int
-        """
+            @param int startByte: The start byte to write from the file.
+            @param int size: How many bytes of the file to write.
+            @param int chunkSize: The size of the chunks to write out.
+            """
         currentReg = reg
         
         # Read files out in readChunkSize and write them out over i2c in writeChunkSize
