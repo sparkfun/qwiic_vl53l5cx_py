@@ -6,7 +6,7 @@
 ![GitHub issues](https://img.shields.io/github/issues/sparkfun/qwiic_vl53l5cx_py)
 ![License](https://img.shields.io/github/license/sparkfun/qwiic_vl53l5cx_py)
 ![X](https://img.shields.io/twitter/follow/sparkfun)
-[![API](https://img.shields.io/badge/API%20Reference-blue)](https://docs.sparkfun.com/qwiic_vl53l5cx_py/classqwiic__vl53l5cx_1_1_qwiic_v_l53_l5_c_x.html)
+[![API](https://img.shields.io/badge/API%20Reference-blue)](https://docs.sparkfun.com/qwiic_vl53l5cx_py/classqwiic__vl53l5cx_1_1qwiic__vl53l5cx_1_1_qwiic_v_l53_l5_c_x.html)
 
 The SparkFun Qwiic ToF Distance Sensing VL53L5CX Module provides a simple and cost effective solution for adding ToF Distance Sensing capabilities to your project. Implementing a SparkFun Qwiic I2C interface, these sensors can be rapidly added to any project with boards that are part of the SparkFun Qwiic ecosystem.
 
@@ -18,7 +18,7 @@ This repository implements a Python package for the SparkFun Qwiic VL53L5CX. Thi
 * [Getting Started](#getting-started)
 * [Installation](#installation)
 * [Supported Platforms](#supported-platforms)
-* [Documentation](https://docs.sparkfun.com/qwiic_vl53l5cx_py/classqwiic__vl53l5cx_1_1_qwiic_v_l53_l5_c_x.html)
+* [Documentation](https://docs.sparkfun.com/qwiic_vl53l5cx_py/classqwiic__vl53l5cx_1_1qwiic__vl53l5cx_1_1_qwiic_v_l53_l5_c_x.html)
 * [Examples](#examples)
 
 ## About the Package
