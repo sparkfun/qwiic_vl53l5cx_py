@@ -195,7 +195,7 @@ class QwiicVL53L5CX(object):
 
     kNvmCmdSize = 40
 
-    def __init__(self, address=None, i2c_driver=None, dataPath = "/lib/vl53l5cx_bin"):
+    def __init__(self, address=None, i2c_driver=None, dataPath = "/lib/qwiic_vl53l5cx/vl53l5cx_bin"):
         """!
         Constructor
 
@@ -231,6 +231,26 @@ class QwiicVL53L5CX(object):
         self.data_read_size = 0
         self.stream_count = 0
 
+    def _find_data_dir(guess_dir):
+        """!
+        Finds the data directory containing the necessary binaries. If provided guess_dir is incorrect, 
+        will look in a default directory based on script location.
+
+        @param str guess_dir: The directory to start searching in
+
+        @return **str** The absolute path to the data directory or `None` if not found
+        """
+        if os.path.isdir(guess_dir):
+            return guess_dir
+        else:
+            try:
+                data_dir = os.path.join(os.path.dirname(__file__), 'vl53l5cx_bin')
+                if os.path.isdir(data_dir):
+                    return data_dir
+                else:
+                    return None
+            except:
+                return None    
 
     def is_connected(self):
         """!
@@ -248,13 +268,21 @@ class QwiicVL53L5CX(object):
 
         @return **bool** `True` if the data directory exists and contains the necessary files, otherwise `False`
         """
+        
+        # Try to find a valid data directory
+        self._dataPath = self._find_data_dir(self._dataPath)
+        if self._dataPath is None:
+            print("ERROR: Could not find data directory! Please provide a valid path for /vl53l5cx_bin on object creation.")
+            return False
 
+        # Validate the binaries are present
         for file in ['firmware.bin', 
                      'default_configuration.bin', 
                      'default_xtalk.bin', 
                      'get_nvm_cmd.bin']:
             # Since micropython does not have os.isfile or os.isdir, we use this more convoluted way to check the files exist:
             if len([fname for fname in os.listdir(self._dataPath) if file == fname]) <= 0:
+                print("ERROR: Malformed data directory! Missing file: " + file)
                 return False
         
         return True
