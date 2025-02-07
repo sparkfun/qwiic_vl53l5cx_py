@@ -2,13 +2,13 @@
 requires = ["setuptools"]
 
 [project]
-name = "sparkfun_qwiic_vl53l5cx_beta_pkging"
-version = "1.0.5"
+name = "sparkfun_qwiic_vl53l5cx"
+version = "1.0.0"
 description = "Sparkfun Electronics Qwiic VL53L5CX Package"
 readme = "DESCRIPTION.rst"
 
 authors = [{name="Sparkfun Electronics", email="info@sparkfun.com"}]
-dependencies = ["sparkfun_qwiic_i2c_tst"]
+dependencies = ["sparkfun_qwiic_i2c"]
 
 classifiers=[
     # How mature is this project? Common values are
