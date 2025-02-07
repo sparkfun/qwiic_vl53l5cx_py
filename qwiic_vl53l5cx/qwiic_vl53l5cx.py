@@ -231,7 +231,7 @@ class QwiicVL53L5CX(object):
         self.data_read_size = 0
         self.stream_count = 0
 
-    def _find_data_dir(guess_dir):
+    def _find_data_dir(self, guess_dir):
         """!
         Finds the data directory containing the necessary binaries. If provided guess_dir is incorrect, 
         will look in a default directory based on script location.
@@ -268,7 +268,7 @@ class QwiicVL53L5CX(object):
 
         @return **bool** `True` if the data directory exists and contains the necessary files, otherwise `False`
         """
-        
+
         # Try to find a valid data directory
         self._dataPath = self._find_data_dir(self._dataPath)
         if self._dataPath is None:
@@ -1464,7 +1464,7 @@ class QwiicVL53L5CX(object):
             return self.get_buffer_from_open_file(f, startByte, endByte)
     
     # TODO: This could still use some optimization...
-    def write_out_large_file(self, reg, fileName, startByte = 0, size = 0, writeChunkSize = 32, readChunkSize = 4096):
+    def write_out_large_file(self, reg, fileName, startByte = 0, size = 0, writeChunkSize = 31, readChunkSize = 4096):
         """!
             This function writes out a large buffer file to i2c bus. 
             The function will write out the file in chunks of chunkSize bytes.
