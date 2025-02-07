@@ -231,6 +231,17 @@ class QwiicVL53L5CX(object):
         self.data_read_size = 0
         self.stream_count = 0
 
+    def _check_if_exists(self, filename):
+        """!
+        Checks if a file or directory exists. Works on MicroPython and CircuitPython
+        which do not have os.path functions (as well as Linux which does).
+        """
+        try:
+            os.stat(filename)
+            return True
+        except:
+            return False
+        
     def _find_data_dir(self, guess_dir):
         """!
         Finds the data directory containing the necessary binaries. If provided guess_dir is incorrect, 
@@ -240,10 +251,13 @@ class QwiicVL53L5CX(object):
 
         @return **str** The absolute path to the data directory or `None` if not found
         """
-        if os.path.isdir(guess_dir):
+        if self._check_if_exists(guess_dir):
             return guess_dir
         else:
             try:
+                # This will only work on Linux/Raspberry Pi not CircuitPython or MicroPython.
+                # Those should provide the correct path in the guess_dir parameter and will 
+                # be installed in the correct default location by the package managers
                 data_dir = os.path.join(os.path.dirname(__file__), 'vl53l5cx_bin')
                 if os.path.isdir(data_dir):
                     return data_dir
